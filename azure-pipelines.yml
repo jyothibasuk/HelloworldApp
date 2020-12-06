@@ -5,30 +5,68 @@
 
 trigger:
 - main
+stages:
+- stage: Build
+   jobs:
+   - job: Build
 
-pool:
-  vmImage: 'vs2017-win2016'
+    pool:
+      vmImage: 'vs2017-win2016'
 
-variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
+    variables:
+      solution: '**/*.sln'
+      buildPlatform: 'Any CPU'
+      buildConfiguration: 'Release'
 
-steps:
-- task: NuGetToolInstaller@1
+    steps:
+    - task: DotNetCoreCLI@1
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+        feedsToUse: 'select'
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+        arguments: '--configuration $(BuildConfiguration)'
 
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: '$(solution)'
+    - task: DotNetCoreCLI@3
+      inputs:
+        command: 'test'
+        projects: '**/*UnitTests/*.csproj'
+        arguments: '--configuration $(BuildConfiguration)'
 
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+    - task: DotNetCoreCLI@4
+      inputs:
+        command: 'publish'
+        publishWebProjects: true
+        arguments: '--configuration $(BuildConfiguration) --output "$(build.artifactstagingdirectory)"'
 
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+    - task: PublishBuildArtifacts@5
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+
+- stage: Deploy
+   jobs:
+   - job: Deploy
+
+    pool:
+      vmImage: 'vs2017-win2016'
+
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'drop'
+        downloadPath: '$(System.ArtifactsDirectory)'
+
+    - task: AzureRmWebAppDeployment@4
+      inputs:
+        ConnectionType: 'AzureRM'
+        azureSubscription: 'Azure for Students(d28ab9fd-692d-49f9-ab1d-94059944b04a)'
+        appType: 'webApp'
+        WebAppName: 'DotNet111'
+        packageForLinux: '$(System.ArtifactsDirectory)/drop/*.zip'
