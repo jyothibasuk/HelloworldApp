@@ -7,7 +7,7 @@ trigger:
 - main
 stages:
 - stage: Build
-   jobs:
+  jobs:
    - job: Build
 
     pool:
@@ -49,7 +49,7 @@ stages:
         publishLocation: 'Container'
 
 - stage: Deploy
-   jobs:
+  jobs:
    - job: Deploy
 
     pool:
