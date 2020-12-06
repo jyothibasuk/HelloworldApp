@@ -30,19 +30,19 @@ stages:
         projects: '**/*.csproj'
         arguments: '--configuration $(BuildConfiguration)'
 
-    - task: DotNetCoreCLI@3
+    - task: DotNetCoreCLI@2
       inputs:
         command: 'test'
         projects: '**/*UnitTests/*.csproj'
         arguments: '--configuration $(BuildConfiguration)'
 
-    - task: DotNetCoreCLI@4
+    - task: DotNetCoreCLI@2
       inputs:
         command: 'publish'
         publishWebProjects: true
         arguments: '--configuration $(BuildConfiguration) --output "$(build.artifactstagingdirectory)"'
 
-    - task: PublishBuildArtifacts@5
+    - task: PublishBuildArtifacts@1
       inputs:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'drop'
